@@ -1,3 +1,3 @@
-import AuthCodeInput from "./AuthCodeInput.svelte";
+import AuthCodeInput from './AuthCodeInput.svelte';
 
 export { AuthCodeInput };
