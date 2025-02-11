@@ -15,6 +15,7 @@
 		onchange?: (res: string) => void;
 		value?: string;
 		name?: string;
+		autoSubmit?: boolean;
 	};
 
 	type InputMode = 'text' | 'numeric';
@@ -41,7 +42,8 @@
 		placeholder,
 		onchange,
 		value = $bindable(undefined),
-		name
+		name,
+		autoSubmit = false
 	}: AuthCodeProps = $props();
 
 	if (isNaN(length) || length < 1) {
@@ -96,8 +98,11 @@
 
 	const sendResult = () => {
 		value = inputsRef.map((input) => input.value).join('');
-		if (onchange) {
-			onchange(value);
+		onchange?.(value);
+		if (autoSubmit && value.length === length) {
+			// get parent form
+			const form = inputsRef[0].closest('form');
+			form?.requestSubmit();
 		}
 	};
 
@@ -106,7 +111,6 @@
 			currentTarget: EventTarget & HTMLInputElement;
 		}
 	) => {
-		console.log(e);
 		if (e.currentTarget.value.length > 1) {
 			e.currentTarget.value = e.currentTarget.value.charAt(0);
 			if (e.currentTarget.nextElementSibling !== null) {

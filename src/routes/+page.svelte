@@ -8,6 +8,7 @@
 
 	let isPassword = $state<boolean>(false);
 	let disabled = $state<boolean>(false);
+	let autoSubmit = $state<boolean>(false);
 
 	let allowedCharacters = $state<'alpha' | 'numeric' | 'alphanumeric'>('alphanumeric');
 
@@ -47,16 +48,28 @@
 				Two-Factor
 				<br /> Authentication
 			</h1>
-			<AuthCodeInput
-				bind:this={AuthInputRef}
-				bind:value={boundResult}
-				{allowedCharacters}
-				onchange={handleOnChange}
-				containerClass="container"
-				inputClass="input"
-				{isPassword}
-				{disabled}
-			/>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					const formData = new FormData(e.target as HTMLFormElement);
+					const dataJson = JSON.stringify(Object.fromEntries(formData));
+					alert(dataJson);
+				}}
+			>
+				<AuthCodeInput
+					bind:this={AuthInputRef}
+					bind:value={boundResult}
+					{allowedCharacters}
+					onchange={handleOnChange}
+					containerClass="container"
+					inputClass="input"
+					{isPassword}
+					{disabled}
+					{autoSubmit}
+					name="authCode"
+				/>
+				<button type="submit">Submit</button>
+			</form>
 			<p>
 				A message with a verification code has been sent to <br />
 				your devices. Enter the code to continue.
@@ -66,26 +79,16 @@
 			<div class="props">
 				<div class="options">
 					<div>
-						<input
-							type="checkbox"
-							id="isPassword"
-							name="isPassword"
-							onchange={(e) => {
-								isPassword = e.currentTarget.checked;
-							}}
-						/>
+						<input type="checkbox" name="isPassword" bind:checked={isPassword} />
 						<label for="isPassword">Password</label>
 					</div>
 					<div>
-						<input
-							type="checkbox"
-							id="disabled"
-							name="disabled"
-							onchange={(e) => {
-								disabled = e.currentTarget.checked;
-							}}
-						/>
+						<input type="checkbox" name="disabled" bind:checked={disabled} />
 						<label for="disabled">Disabled</label>
+					</div>
+					<div>
+						<input type="checkbox" name="autosubmit" bind:checked={autoSubmit} />
+						<label for="autosubmit">Auto-Submit</label>
 					</div>
 					<button onclick={() => AuthInputRef?.focus()}> Focus </button>
 					<button onclick={() => AuthInputRef?.clear()}> Clear </button>
