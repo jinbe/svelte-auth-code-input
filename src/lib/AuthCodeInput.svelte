@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
+	let ac = $state.raw<AbortController | null>(null);
+
 	const allowedCharactersValues = ['alpha', 'numeric', 'alphanumeric'] as const;
 	type AllowedCharacters = (typeof allowedCharactersValues)[number];
 
@@ -16,6 +20,7 @@
 		value?: string;
 		name?: string;
 		autoSubmit?: boolean;
+		webOTP?: boolean;
 	};
 
 	type InputMode = 'text' | 'numeric';
@@ -43,7 +48,8 @@
 		onchange,
 		value = $bindable(undefined),
 		name,
-		autoSubmit = false
+		autoSubmit = false,
+		webOTP = false
 	}: AuthCodeProps = $props();
 
 	if (isNaN(length) || length < 1) {
@@ -80,7 +86,7 @@
 			pattern: '[a-zA-Z0-9]{1}'
 		} as InputProps,
 		numeric: {
-			type: 'tel',
+			type: 'text',
 			inputMode: 'numeric',
 			pattern: '[0-9]{1}',
 			min: '0',
@@ -106,7 +112,7 @@
 		}
 	};
 
-	const handeOnInput = (
+	const handleOnInput = (
 		e: Event & {
 			currentTarget: EventTarget & HTMLInputElement;
 		}
@@ -150,13 +156,11 @@
 		(e.target as HTMLInputElement)?.select();
 	};
 
-	const handleOnPaste = (e: ClipboardEvent) => {
-		const pastedValue = e.clipboardData?.getData('Text') || '';
-
+	const inputValue = (value: string) => {
 		let currentInput = 0;
 
-		for (let i = 0; i < pastedValue.length; i++) {
-			const pastedCharacter = pastedValue.charAt(i);
+		for (let i = 0; i < value.length; i++) {
+			const pastedCharacter = value.charAt(i);
 			const currentValue = inputsRef[currentInput]?.value;
 			if (pastedCharacter.match(inputProps.pattern)) {
 				if (!currentValue) {
@@ -170,10 +174,58 @@
 				}
 			}
 		}
+	};
+
+	const handleOnPaste = (e: ClipboardEvent) => {
+		const pastedValue = e.clipboardData?.getData('Text') || '';
+
+		inputValue(pastedValue);
+
 		sendResult();
 
 		e.preventDefault();
 	};
+
+	onMount(() => {
+		if (webOTP) {
+			if ('OTPCredential' in window) {
+				window.addEventListener('DOMContentLoaded', (e) => {
+					const input = document.querySelector('input[autocomplete="one-time-code"]');
+					if (!input) return;
+					// Set up an AbortController to use with the OTP request
+					ac = new AbortController();
+					const form = input.closest('form');
+					if (form) {
+						// Abort the OTP request if the user attempts to submit the form manually
+						form.addEventListener('submit', (e) => {
+							ac?.abort();
+						});
+					}
+					// Request the OTP via get()
+					navigator.credentials
+						.get({
+							// @ts-expect-error
+							otp: { transport: ['sms'] },
+							signal: ac.signal
+						})
+						.then((otp) => {
+							// @ts-expect-error
+							inputValue(otp.code);
+
+							sendResult();
+						})
+						.catch((err) => {
+							console.error(err);
+						});
+				});
+			}
+
+			setTimeout(() => {
+				// abort after 60 seconds
+				ac?.abort();
+			}, 60 * 1000);
+		}
+	});
 </script>
 
 <div class={containerClass}>
@@ -181,7 +233,7 @@
 		{#key i}
 			<input
 				bind:this={inputsRef[i]}
-				oninput={handeOnInput}
+				oninput={handleOnInput}
 				onkeydown={handleOnKeyDown}
 				onfocus={handleOnFocus}
 				onpaste={handleOnPaste}
