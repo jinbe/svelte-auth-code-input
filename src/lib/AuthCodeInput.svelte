@@ -112,28 +112,6 @@
 		}
 	};
 
-	const handleOnInput = (
-		e: Event & {
-			currentTarget: EventTarget & HTMLInputElement;
-		}
-	) => {
-		if (e.currentTarget.value.length > 1) {
-			e.currentTarget.value = e.currentTarget.value.charAt(0);
-			if (e.currentTarget.nextElementSibling !== null) {
-				(e.currentTarget.nextElementSibling as HTMLInputElement).focus();
-			}
-		} else {
-			if (e.currentTarget.value.match(inputProps.pattern)) {
-				if (e.currentTarget.nextElementSibling !== null) {
-					(e.currentTarget.nextElementSibling as HTMLInputElement).focus();
-				}
-			} else {
-				e.currentTarget.value = '';
-			}
-		}
-		sendResult();
-	};
-
 	const handleOnKeyDown = (e: KeyboardEvent) => {
 		const { key } = e;
 		const target = e.target as HTMLInputElement;
@@ -150,6 +128,30 @@
 			}
 			sendResult();
 		}
+	};
+
+	const handleOnInput = (e: Event & { currentTarget: EventTarget & HTMLInputElement }) => {
+		if (e.currentTarget.value.length > 1) {
+			// if more than one char is entered then get a copy of the string
+			// set the input to empty
+			const copy = `${e.currentTarget.value}`;
+			e.currentTarget.value = '';
+
+			// run the paste input handler
+			inputValue(copy);
+
+			// prevent the default behaviour
+			e.preventDefault();
+		} else {
+			if (e.currentTarget.value.match(inputProps.pattern)) {
+				if (e.currentTarget.nextElementSibling !== null) {
+					(e.currentTarget.nextElementSibling as HTMLInputElement).focus();
+				}
+			} else {
+				e.currentTarget.value = '';
+			}
+		}
+		sendResult();
 	};
 
 	const handleOnFocus = (e: FocusEvent) => {
