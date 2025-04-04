@@ -13,6 +13,7 @@ declare const AuthCodeInput: import("svelte").Component<{
     name?: string;
     autoSubmit?: boolean;
     webOTP?: boolean;
+    webOTPTimeoutSeconds?: number;
 }, {
     focus: () => void;
     clear: () => void;

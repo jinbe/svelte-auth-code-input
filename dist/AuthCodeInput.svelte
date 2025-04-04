@@ -21,6 +21,7 @@
 		name?: string;
 		autoSubmit?: boolean;
 		webOTP?: boolean;
+		webOTPTimeoutSeconds?: number;
 	};
 
 	type InputMode = 'text' | 'numeric';
@@ -49,7 +50,8 @@
 		value = $bindable(undefined),
 		name,
 		autoSubmit = false,
-		webOTP = false
+		webOTP = false,
+		webOTPTimeoutSeconds = 60
 	}: AuthCodeProps = $props();
 
 	if (isNaN(length) || length < 1) {
@@ -191,41 +193,38 @@
 	onMount(() => {
 		if (webOTP) {
 			if ('OTPCredential' in window) {
-				window.addEventListener('DOMContentLoaded', (e) => {
-					const input = document.querySelector('input[autocomplete="one-time-code"]');
-					if (!input) return;
-					// Set up an AbortController to use with the OTP request
-					ac = new AbortController();
-					const form = input.closest('form');
-					if (form) {
-						// Abort the OTP request if the user attempts to submit the form manually
-						form.addEventListener('submit', (e) => {
-							ac?.abort();
-						});
-					}
-					// Request the OTP via get()
-					navigator.credentials
-						.get({
-							// @ts-expect-error
-							otp: { transport: ['sms'] },
-							signal: ac.signal
-						})
-						.then((otp) => {
-							// @ts-expect-error
-							inputValue(otp.code);
+				const input = document.querySelector('input[autocomplete="one-time-code"]');
+				if (!input) return;
+				// Set up an AbortController to use with the OTP request
+				ac = new AbortController();
+				const form = input.closest('form');
+				if (form) {
+					// Abort the OTP request if the user attempts to submit the form manually
+					form.addEventListener('submit', (e) => {
+						ac?.abort();
+					});
+				}
+				// Request the OTP via get()
+				navigator.credentials
+					.get({
+						// @ts-expect-error
+						otp: { transport: ['sms'] },
+						signal: ac.signal
+					})
+					.then((otp) => {
+						// @ts-expect-error
+						inputValue(otp.code);
 
-							sendResult();
-						})
-						.catch((err) => {
-							console.error(err);
-						});
-				});
+						sendResult();
+					})
+					.catch((err) => {
+						console.error(err);
+					});
 			}
 
 			setTimeout(() => {
-				// abort after 60 seconds
 				ac?.abort();
-			}, 60 * 1000);
+			}, webOTPTimeoutSeconds * 1000);
 		}
 	});
 </script>
